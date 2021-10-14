@@ -1,0 +1,377 @@
+```{r loadtimeordered}
+library(timeordered)
+data(ants)
+write.csv(ants,"ants_data.csv")
+```
+
+```{r loadtimeordered}
+# load the ants data
+library(timeordered)
+contact_contraction <- read.csv("Supplementary_Data_1/Antennal contact_Interaction list_First two trials_Duration.csv")
+allindivs <- c(union(contact_contraction$VertexFrom, contact_contraction$VertexTo), "NULL1", "NULL2")
+G <- generatetonetwork(contact_contraction,allindivs)
+gsize(G)
+```
+
+```{r}
+# load the bees data
+write.table(contact_contraction,"contact_Interaction.csv",row.names=FALSE, col.names=FALSE)
+contact_contraction_2 <- read.csv("Supplementary_Data_1/Antennal contact_Interaction list_Number of interactions.csv")
+write.table(contact_contraction_2,"contact_Interaction2.csv",row.names=FALSE, col.names=FALSE)
+```
+
+```{r}
+# compute probability in bee network
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- simplify(bee_graph,remove.multiple=TRUE)
+# delete bees from another colony
+com <- cluster_fast_greedy(bee_graph)
+com1 <- c()
+for (e in com[1]){
+  com1 <- append(com1, e)
+}
+com2 <- c()
+for (e in com[2]){
+  com2 <- append(com2, e)
+}
+bee_graph <- delete.vertices(bee_graph,com1)
+bee_list <- as_edgelist(bee_graph)
+probe_list <- sample(E(bee_graph),67)
+probe_edges <- ends(bee_graph, probe_list,names=FALSE)
+bee_graph <- delete.edges(bee_graph,probe_list)
+result <- predict_edges(bee_graph,num.samples=1000)
+```
+
+```{r}
+write.table(probe_edges,"probe_edges.csv",row.names=FALSE, col.names=FALSE)
+```
+```{r}
+# probability in ant network
+library(igraph)
+ant_graph <- graph.data.frame(ants,directed=FALSE)
+ant_graph <- simplify(ant_graph,remove.multiple=TRUE)
+ant_list <- as_edgelist(ant_graph)
+ant_probe_list <- sample(E(ant_graph),65)
+ant_probe_edges <- ends(ant_graph, ant_probe_list,names=FALSE)
+ant_graph <- delete.edges(ant_graph,ant_probe_list)
+result2 <- predict_edges(ant_graph,num.samples=1000)
+```
+
+```{r}
+write.table(ant_probe_edges,"ant_probe_edges.csv",row.names=FALSE, col.names=FALSE)
+```
+
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+edge_attr_names(bee_graph)
+bee_list <- E(bee_graph)
+future_edge <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 1000) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in bee_list) {
+  if ( (edge_attr(bee_graph,name="TimeStart",index=e) > 1000) & 
+       (edge_attr(bee_graph,name="TimeStart",index=e) < 4000) ) {new_edges <- append(new_edges,e)}}
+length(new_edges)
+new_edges <- ends(bee_graph,new_edges,names=FALSE)
+bee_graph_1000 <- delete.edges(bee_graph,future_edge)
+bee_graph_1000 <- simplify(bee_graph_1000,remove.multiple=TRUE)
+bee_result_1000 <- predict_edges(bee_graph_1000,num.samples=10000)
+```
+
+```{r}
+# exclude new added edges that have been added into networks previously 
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(bee_graph_1000,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+# write.table(bee_result_1000$edges,"bee_network_1000.csv",row.names=FALSE, col.names=FALSE)
+# write.table(bee_result_1000$prob,"bee_network_1000_prob.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"bee_newedges_1000.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(bee_result_1000$hrg)
+length(index)
+```
+
+The rest are repeating the code above to compute probability of missing links at different time.
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+bee_list <- E(bee_graph)
+future_edge_1500 <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 1500) {future_edge_1500 <- append(future_edge_1500,e)}}
+new_edges <- c()
+for (e in bee_list) {
+  if ( (edge_attr(bee_graph,name="TimeStart",index=e) > 1500) & 
+       (edge_attr(bee_graph,name="TimeStart",index=e) < 4500) ) {new_edges <- append(new_edges,e)}}
+length(new_edges)
+new_edges <- ends(bee_graph,new_edges,names=FALSE)
+bee_graph_1500 <- delete.edges(bee_graph,future_edge_1500)
+bee_graph_1500 <- simplify(bee_graph_1500,remove.multiple=TRUE)
+bee_result_1500 <- predict_edges(bee_graph_1500,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(bee_graph_1500,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+plot_dendrogram(bee_result_1500$hrg)
+#write.table(bee_result_1500$edges,"bee_network_1500x.csv",row.names=FALSE, col.names=FALSE)
+#write.table(bee_result_1500$prob,"bee_network_1500.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"bee_newedges_1500.csv",row.names=FALSE, col.names=FALSE)
+```
+
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+edge_attr_names(bee_graph)
+bee_list <- E(bee_graph)
+future_edge <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 2000) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in bee_list) {
+  if ( (edge_attr(bee_graph,name="TimeStart",index=e) > 2000) & 
+       (edge_attr(bee_graph,name="TimeStart",index=e) < 5000) ) {new_edges <- append(new_edges,e)}}
+length(future_edge)
+new_edges <- ends(bee_graph,new_edges,names=FALSE)
+bee_graph_2000 <- delete.edges(bee_graph,future_edge)
+bee_graph_2000 <- simplify(bee_graph_2000,remove.multiple=TRUE)
+bee_result_2000 <- predict_edges(bee_graph_2000,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(bee_graph_2000,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+# write.table(bee_result_2000$edges,"bee_network_2000x.csv",row.names=FALSE, col.names=FALSE)
+# write.table(bee_result_2000$prob,"bee_network_2000.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"bee_newedges_2000.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(bee_result_2000$hrg)
+```
+
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+bee_list <- E(bee_graph)
+future_edge_2500 <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 2500) {future_edge_2500 <- append(future_edge_2500,e)}}
+new_edges <- c()
+for (e in bee_list) {
+  if ( (edge_attr(bee_graph,name="TimeStart",index=e) > 2500) & 
+       (edge_attr(bee_graph,name="TimeStart",index=e) < 5500) ) {new_edges <- append(new_edges,e)}}
+length(future_edge)
+new_edges <- ends(bee_graph,new_edges,names=FALSE)
+bee_graph_2500 <- delete.edges(bee_graph,future_edge_2500)
+bee_graph_2500 <- simplify(bee_graph_2500,remove.multiple=TRUE)
+#bee_result_2500 <- predict_edges(bee_graph_2500,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(bee_graph_2500,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+#write.table(bee_result_2500$edges,"bee_network_2500x.csv",row.names=FALSE, col.names=FALSE)
+#write.table(bee_result_2500$prob,"bee_network_2500.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"bee_newedges_2500.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(bee_result_2500$hrg)
+```
+
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+edge_attr_names(bee_graph)
+bee_list <- E(bee_graph)
+future_edge <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 3000) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in bee_list) {
+  if ( (edge_attr(bee_graph,name="TimeStart",index=e) > 3000) & 
+       (edge_attr(bee_graph,name="TimeStart",index=e) < 6000) ) {new_edges <- append(new_edges,e)}}
+length(future_edge)
+new_edges <- ends(bee_graph,new_edges,names=FALSE)
+bee_graph_3000 <- delete.edges(bee_graph,future_edge)
+bee_graph_3000 <- simplify(bee_graph_3000,remove.multiple=TRUE)
+bee_result_3000 <- predict_edges(bee_graph_3000,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(bee_graph_3000,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+# write.table(bee_result_3000$edges,"bee_network_3000x.csv",row.names=FALSE, col.names=FALSE)
+# write.table(bee_result_3000$prob,"bee_network_3000.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"bee_newedges_3000.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(bee_result_3000$hrg)
+```
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+bee_list <- E(bee_graph)
+future_edge_3500 <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 3500) {future_edge_3500 <- append(future_edge_3500,e)}}
+bee_graph_3500 <- delete.edges(bee_graph,future_edge_3500)
+bee_graph_3500 <- simplify(bee_graph_3500,remove.multiple=TRUE)
+bee_result_3500 <- predict_edges(bee_graph_3500,num.samples=10000)
+plot_dendrogram(bee_result_3500$hrg)
+```
+{}
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+edge_attr_names(bee_graph)
+bee_list <- E(bee_graph)
+future_edge <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 4000) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in bee_list) {
+  if ( (edge_attr(bee_graph,name="TimeStart",index=e) > 4000) & 
+       (edge_attr(bee_graph,name="TimeStart",index=e) < 7000) ) {new_edges <- append(new_edges,e)}}
+new_edges <- ends(bee_graph,new_edges,names=FALSE)
+bee_graph_4000 <- delete.edges(bee_graph,future_edge)
+bee_graph_4000 <- simplify(bee_graph_4000,remove.multiple=TRUE)
+#bee_result_4000 <- predict_edges(bee_graph_4000,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(bee_graph_4000,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+#write.table(bee_result_4000$edges,"bee_network_4000x.csv",row.names=FALSE, col.names=FALSE)
+#write.table(bee_result_4000$prob,"bee_network_4000.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"bee_newedges_4000.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(bee_result_4000$hrg)
+length(index)
+```
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+bee_list <- E(bee_graph)
+future_edge_5000 <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 5000) {future_edge_5000 <- append(future_edge_5000,e)}}
+bee_graph_5000 <- delete.edges(bee_graph,future_edge_5000)
+bee_graph_5000 <- simplify(bee_graph_5000,remove.multiple=TRUE)
+bee_result_5000 <- predict_edges(bee_graph_5000,num.samples=10000)
+write.table(bee_result_5000$edges,"bee_network_5000x.csv",row.names=FALSE, col.names=FALSE)
+write.table(bee_result_5000$prob,"bee_network_5000.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(bee_result_5000$hrg)
+```
+
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+bee_list <- E(bee_graph)
+future_edge_6000 <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 6000) {future_edge_6000 <- append(future_edge_6000,e)}}
+bee_graph_6000 <- delete.edges(bee_graph,future_edge_6000)
+bee_graph_6000 <- simplify(bee_graph_6000,remove.multiple=TRUE)
+bee_result_6000 <- predict_edges(bee_graph_6000,num.samples=10000)
+write.table(bee_result_6000$edges,"bee_network_6000x.csv",row.names=FALSE, col.names=FALSE)
+write.table(bee_result_6000$prob,"bee_network_6000.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(bee_result_6000$hrg)
+```
+{1,33,7,29,32,17,18,10,24,20,28} 
+
+
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+bee_list <- E(bee_graph)
+future_edge_7000 <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 7000) {future_edge_7000 <- append(future_edge_7000,e)}}
+bee_graph_7000 <- delete.edges(bee_graph,future_edge_7000)
+bee_graph_7000 <- simplify(bee_graph_7000,remove.multiple=TRUE)
+bee_result_7000 <- predict_edges(bee_graph_7000,num.samples=10000)
+plot_dendrogram(bee_result_7000$hrg)
+```
+{1,33,7,29,32,17,18,10,24,20,28} 
+```{r}
+library(igraph)
+ant_graph <- graph.data.frame(ants,directed=FALSE)
+edge_attr_names(ant_graph)
+ant_list <- E(ant_graph)
+future_edge <- c()
+for (e in ant_list) {
+  if (edge_attr(ant_graph,name="TimeStart",index=e) > 800) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in ant_list) {
+  if ( (edge_attr(ant_graph,name="TimeStart",index=e) > 800) & 
+       (edge_attr(ant_graph,name="TimeStart",index=e) < 1000) ) {new_edges <- append(new_edges,e)}}
+length(future_edge)
+new_edges <- ends(ant_graph,new_edges,names=FALSE)
+ant_graph_800 <- delete.edges(ant_graph,future_edge)
+ant_graph_800 <- simplify(ant_graph_800,remove.multiple=TRUE)
+ant_result_800 <- predict_edges(ant_graph_800,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(ant_graph_800,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+write.table(ant_result_800$edges,"ant_network_800x.csv",row.names=FALSE, col.names=FALSE)
+write.table(ant_result_800$prob,"ant_network_800.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"ant_newedges_800.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(ant_result_800$hrg)
+```
+
+```{r}
+library(igraph)
+ant_graph <- graph.data.frame(ants,directed=FALSE)
+edge_attr_names(ant_graph)
+ant_list <- E(ant_graph)
+future_edge <- c()
+for (e in ant_list) {
+  if (edge_attr(ant_graph,name="TimeStart",index=e) > 1000) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in ant_list) {
+  if ( (edge_attr(ant_graph,name="TimeStart",index=e) > 1000) & 
+       (edge_attr(ant_graph,name="TimeStart",index=e) < 1200) ) {new_edges <- append(new_edges,e)}}
+length(future_edge)
+new_edges <- ends(ant_graph,new_edges,names=FALSE)
+ant_graph_1000 <- delete.edges(ant_graph,future_edge)
+ant_graph_1000 <- simplify(ant_graph_1000,remove.multiple=TRUE)
+ant_result_1000 <- predict_edges(ant_graph_1000,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(ant_graph_1000,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+write.table(ant_result_1000$edges,"ant_network_1000x.csv",row.names=FALSE, col.names=FALSE)
+write.table(ant_result_1000$prob,"ant_network_1000.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"ant_newedges_1000.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(ant_result_1000$hrg)
+```
+```{r}
+library(igraph)
+ant_graph <- graph.data.frame(ants,directed=FALSE)
+edge_attr_names(ant_graph)
+ant_list <- E(ant_graph)
+future_edge <- c()
+for (e in ant_list) {
+  if (edge_attr(ant_graph,name="TimeStart",index=e) > 1200) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in ant_list) {
+  if ( (edge_attr(ant_graph,name="TimeStart",index=e) > 1200) & 
+       (edge_attr(ant_graph,name="TimeStart",index=e) < 1400) ) {new_edges <- append(new_edges,e)}}
+length(future_edge)
+new_edges <- ends(ant_graph,new_edges,names=FALSE)
+ant_graph_1200 <- delete.edges(ant_graph,future_edge)
+ant_graph_1200 <- simplify(ant_graph_1200,remove.multiple=TRUE)
+ant_result_1200 <- predict_edges(ant_graph_1200,num.samples=10000)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(ant_graph_1200,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+write.table(ant_result_1200$edges,"ant_network_1200x.csv",row.names=FALSE, col.names=FALSE)
+write.table(ant_result_1200$prob,"ant_network_1200.csv",row.names=FALSE, col.names=FALSE)
+write.table(new_edges[index,1:2],"ant_newedges_1200.csv",row.names=FALSE, col.names=FALSE)
+plot_dendrogram(ant_result_1200$hrg)
+```
+```{r}
+library(igraph)
+bee_graph <- graph.data.frame(bee,directed=FALSE)
+bee_graph <- delete.vertices(bee_graph,com2)
+bee_list <- E(bee_graph)
+future_edge <- c()
+for (e in bee_list) {
+  if (edge_attr(bee_graph,name="TimeStart",index=e) > 6000) {future_edge <- append(future_edge,e)}}
+new_edges <- c()
+for (e in bee_list) {
+  if ( (edge_attr(bee_graph,name="TimeStart",index=e) > 6000) & 
+       (edge_attr(bee_graph,name="TimeStart",index=e) < 7000) ) {new_edges <- append(new_edges,e)}}
+length(future_edge)
+new_edges <- ends(bee_graph,new_edges,names=FALSE)
+bee_graph_6000 <- delete.edges(bee_graph,future_edge)
+bee_graph_6000 <- simplify(bee_graph_6000,remove.multiple=TRUE)
+index <- c()
+for (n in 1:dim(new_edges)[1]) {if (! are_adjacent(bee_graph_6000,new_edges[n,1],new_edges[n,2])) {index <- append(index,n)}}
+write.table(new_edges[index,1:2],"bee_newedges_6000-7000.csv",row.names=FALSE, col.names=FALSE)
+```
